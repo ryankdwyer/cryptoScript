@@ -17,6 +17,9 @@
   },
   "homepage": "https://github.com/ryankdwyer/cryptoScript#readme",
   "dependencies": {
+    "bluebird": "^3.5.1",
+    "flat": "^4.0.0",
+    "redis": "^2.8.0",
     "socket.io": "^2.0.4",
     "socket.io-client": "^2.0.4"
   }

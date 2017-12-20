@@ -18,10 +18,10 @@ const subs = {
     ],
     initSubs: function () {
         let self = this;
-        self.fromCoin.forEach(function(from) {
-            self.toCoin.forEach(function(to) {
-                self.exchanges.forEach(function(xchng) {
-                    self.subscriptionIds.forEach(function(subId) {
+        self.fromCoin.forEach((from) => {
+            self.toCoin.forEach((to) => {
+                self.exchanges.forEach((xchng) => {
+                    self.subscriptionIds.forEach((subId) => {
                         self.subStrings.push(`${subId}~${xchng}~${from}~${to}`);
                     });
                 });

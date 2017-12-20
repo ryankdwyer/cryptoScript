@@ -1,6 +1,13 @@
 const io = require('socket.io-client');
+const bluebird = require('bluebird');
 const subscriptions = require('./subscriptions.js');
 const utils = require('./utils.js');
+const redis = require('redis');
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
+const rClient = redis.createClient();
+
+const hash_key = 'crypto_volume';
 
 (function () {
 
@@ -39,7 +46,29 @@ const utils = require('./utils.js');
 		}
 		currentPrice[pair]['CHANGE24HOUR'] = utils.convertValueToDisplay(tsym, (currentPrice[pair]['PRICE'] - currentPrice[pair]['OPEN24HOUR']));
 		currentPrice[pair]['CHANGE24HOURPCT'] = ((currentPrice[pair]['PRICE'] - currentPrice[pair]['OPEN24HOUR']) / currentPrice[pair]['OPEN24HOUR'] * 100).toFixed(2) + "%";;
-		console.log(currentPrice[pair]);
+
+        addToRedis(pair, currentPrice[pair]);
 	};
+
+    var addToRedis = function (key, data) {
+
+        if (!data || !key) return false;
+
+        let keyVal = objToArray(data);
+        console.log(key, keyVal);
+        rClient.hmsetAsync(key, keyVal).then(function(res) {
+            console.log(res);
+        });
+    }
+
+    var objToArray = function (data) {
+        let flattened = [];
+
+        for (var key in data) {
+            flattened.push(key);
+            flattened.push(data[key]);
+        }
+        return flattened;
+    }
 
 })();
