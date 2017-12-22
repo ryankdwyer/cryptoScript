@@ -3,8 +3,6 @@ const bluebird = require('bluebird');
 const subscriptions = require('./subscriptions.js');
 const utils = require('./utils.js');
 const redis = require('redis');
-//bluebird.promisifyAll(redis.RedisClient.prototype);
-//bluebird.promisifyAll(redis.Multi.prototype);
 const r = redis.createClient();
 
 const sortedSetKey = 'crypto_volume';
