@@ -25,6 +25,13 @@ const sortedSetKey = 'crypto_volume';
 	}); 
 
 	var dataUnpack = function(data) {
+        if ( !data.PRICE ||
+            !data.LASTUPDATE ||
+            !data.VOLUMEHOUR ||
+            !data.VOLUME24HOUR ) {
+           return false;
+        }
+
 		let from = data['FROMSYMBOL'];
 		let to = data['TOSYMBOL'];
 		let fsym = utils.STATIC.CURRENCY.getSymbol(from);
