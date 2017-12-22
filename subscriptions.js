@@ -1,9 +1,6 @@
 const subs = {
     fromCoin: [
-		'BTC',
-		'ETH',
 		'XRP',
-		'LTC',
 		'ADA',
 		'XLM',
     ],

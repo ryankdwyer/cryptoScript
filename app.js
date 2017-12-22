@@ -3,11 +3,11 @@ const bluebird = require('bluebird');
 const subscriptions = require('./subscriptions.js');
 const utils = require('./utils.js');
 const redis = require('redis');
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
-const rClient = redis.createClient();
+//bluebird.promisifyAll(redis.RedisClient.prototype);
+//bluebird.promisifyAll(redis.Multi.prototype);
+const r = redis.createClient();
 
-const hash_key = 'crypto_volume';
+const sortedSetKey = 'crypto_volume';
 
 (function () {
 
@@ -51,14 +51,25 @@ const hash_key = 'crypto_volume';
 	};
 
     var addToRedis = function (key, data) {
-
         if (!data || !key) return false;
 
-        let keyVal = objToArray(data);
-        console.log(key, keyVal);
-        rClient.hmsetAsync(key, keyVal).then(function(res) {
-            console.log(res);
-        });
+
+        r.incr('event:id', function (err, res) {
+
+            let id = res;
+            data.id = id;
+            event_key = `event:${id}`;
+
+            r.multi()
+                .hmset(event_key, data)
+                .zadd(sortedSetKey, id, data.LASTUPDATE)
+                .exec(function(err, res) {
+                    if (err) {
+                        console.log(err);
+                    }
+                });
+        })
+           
     }
 
     var objToArray = function (data) {
