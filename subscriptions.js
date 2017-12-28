@@ -3,6 +3,10 @@ const subs = {
 		'XRP',
 		'ADA',
 		'XLM',
+        'BTC',
+        'NEO',
+        'ETH',
+        'LTC'
     ],
     toCoin: [
         'USD',

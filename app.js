@@ -25,8 +25,7 @@ const sortedSetKey = 'crypto_volume';
 	}); 
 
 	var dataUnpack = function(data) {
-        if ( !data.PRICE ||
-            !data.LASTUPDATE ||
+        if ( !data.LASTUPDATE ||
             !data.VOLUMEHOUR ||
             !data.VOLUME24HOUR ) {
            return false;
@@ -58,7 +57,7 @@ const sortedSetKey = 'crypto_volume';
     var addToRedis = function (key, data) {
         if (!data || !key) return false;
 
-
+        console.log('adding: ' + key + ' to redis');
         r.incr('event:id', function (err, res) {
 
             let id = res;
