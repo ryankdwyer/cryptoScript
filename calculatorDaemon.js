@@ -1,6 +1,7 @@
 const subscriptions = require('./subscriptions.js');
 const bluebird = require('bluebird');
 const utils = require('./utils.js');
+const Table = require('cli-table2');
 const redis = require('redis');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
@@ -10,6 +11,10 @@ const sortedSetKey = 'crypto_volume';
 
 (function () {
 
+    var table = new Table({
+        head: ['Pair', '\u0916 Volume', '\u0916 Price'],
+        colWidths: [100, 100, 100]
+    });
         
     setInterval(function () {
         getLastEvents().then(function(events) {
@@ -34,30 +39,37 @@ const sortedSetKey = 'crypto_volume';
                 }
             });
 
+            if (!hashes.length) return;
+
             let volumeMap = {};
             let priceMap = {};
             for (var pair in pairMap) {
                 if (pairMap.hasOwnProperty(pair)) {
-                    volumeMap[pair] = calcChange(pairMap[pair], 'VOLUMEHOUR');
-                    priceMap[pair] = calcChange(pairMap[pair], 'PRICE');
+                    volumeMap[pair] = calcRateOfChange(pairMap[pair], 'VOLUMEHOUR');
+                    priceMap[pair] = calcRateOfChange(pairMap[pair], 'PRICE');
                 }
             }
-            console.log(volumeMap, priceMap);
+            printValuesToTable(volumeMap, priceMap);
             return hashes;
         })
         .then(function(hashes) {
+            if (!hashes) return;
             hashes = hashes.map((el) => {
                 return `event:${el.id}`;
             });
             return removeHashes([hashes[0]]);
         })
-        .then(function() {
+        .then(function(res) {
+            if (!res) return;
             return removeLastEvents();
         })
         .then(function(res) {
-            console.log(res);
+            if (!res) {
+                console.log('No data, sleeping for 10 seconds');
+                return;
+            }
         });
-    }, 10000)
+    }, 2000)
     
 
     function getLastEvents () {
@@ -92,6 +104,18 @@ const sortedSetKey = 'crypto_volume';
         return ret;
     }
 
+    function calcRateOfChange(data, key) {
+        if (!data.length > 1) return 0;
+
+        let firstVal = data[0][key];
+        let firstTime = data[0]['LASTUPDATE'];
+        let lastVal = data[data.length - 1][key];
+        let lastTime = data[data.length - 1]['LASTUPDATE'];
+
+        let rateOfChange = ( lastVal - firstVal ) / ( lastTime - firstTime );
+        return rateOfChange;
+    }
+
     function calcChange (data, key) {
         if (data.length < 5) return 0;
         deriv = 0;
@@ -103,6 +127,10 @@ const sortedSetKey = 'crypto_volume';
         }
         deriv /= ( 12 * h );
         return deriv;
+    }
+
+    function printValuesToTable (vol, price) {
+        
     }
 
 })();
