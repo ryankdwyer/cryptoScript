@@ -6,6 +6,7 @@ const redis = require('redis');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 const r = redis.createClient();
+const moment = require('moment-timezone');
 
 const sortedSetKey = 'crypto_volume';
 
@@ -17,13 +18,15 @@ const sortedSetKey = 'crypto_volume';
     });
         
     setInterval(function () {
+        var table = new Table({
+            head: ['Pair', 'To', 'From', '\u0394 Volume', '\u0394 Price'],
+            colWidths: [10, 25, 25, 10, 10],
+        });
         getLastEvents().then(function(events) {
-            let eventIds = events.reduce(function(prev, curr, i) {
-                if ( i % 2 === 1 ) {
-                    prev.push(`event:${curr}`);
-                }
-                return prev;
-            }, []);
+            let eventIds = getEventIds(events);
+            if (!eventIds || eventIds.length < 2) {
+                throw 'Not enough events, sleeping...';
+            }
             return getHashes(eventIds);
         })
         .then(function(hashes) {
@@ -43,6 +46,7 @@ const sortedSetKey = 'crypto_volume';
 
             let volumeMap = {};
             let priceMap = {};
+            let toFrom = {};
             for (var pair in pairMap) {
                 if (pairMap.hasOwnProperty(pair)) {
                     volumeMap[pair] = calcRateOfChange(pairMap[pair], 'VOLUMEHOUR');
@@ -50,6 +54,11 @@ const sortedSetKey = 'crypto_volume';
                 }
             }
             printValuesToTable(volumeMap, priceMap);
+            let to = moment.tz(pairMap[pair][0].LASTUPDATE * 1000 , 'America/New_York').format('YY-MM-DD HH:mm:ss');
+            let from = moment.tz(pairMap[pair][pairMap[pair].length - 1].LASTUPDATE * 1000, 'America/New_York').format('YY-MM-DD HH:mm:ss');
+            toFrom[pair] = {to: to, from: from};
+            volumeMap[pair] = calcChange(pairMap[pair], 'VOLUMEHOUR');
+            priceMap[pair] = calcChange(pairMap[pair], 'PRICE');
             return hashes;
         })
         .then(function(hashes) {
@@ -117,20 +126,47 @@ const sortedSetKey = 'crypto_volume';
     }
 
     function calcChange (data, key) {
-        if (data.length < 5) return 0;
-        deriv = 0;
-        coeff = [1,-8,0,8,-1];
-        h = 2;
-        N = 5;
-        for (var i = 0; i < N; i++) {
-            deriv += (data[i][key] * coeff[i]);
+        let first = data[0][key];
+        let last = data[data.length - 1][key];
+        let from = data[0].LASTUPDATE;
+        let to = data[data.length - 1].LASTUPDATE;
+        return ( last - first ) / (to - from);
+
+        //if (data.length < 5) return 0;
+        //deriv = 0;
+        //coeff = [1,-8,0,8,-1];
+        //h = 2;
+        //N = 5;
+        //for (var i = 0; i < N; i++) {
+        //    deriv += (data[i][key] * coeff[i]);
+        //}
+        //deriv /= ( 12 * h );
+        //return deriv;
+    }
+
+    function printToTable(table, times, volumes, prices) {
+        for (var key in times) {
+            if (times.hasOwnProperty(key)) {
+                let to = times[key].to;
+                let from = times[key].from;
+                let vol = volumes[key];
+                let price = prices[key];
+                table.push([key, to, from, vol, price]);
+            }
         }
-        deriv /= ( 12 * h );
-        return deriv;
+        console.log(table.toString());
     }
 
     function printValuesToTable (vol, price) {
         
     }
+    function getEventIds(events) {
+        return events.reduce(function(prev, curr, i) {
+            if ( i % 2 === 1 ) {
+                prev.push(`event:${curr}`);
+            }
+            return prev;
+        }, []);
+    };
 
 })();
